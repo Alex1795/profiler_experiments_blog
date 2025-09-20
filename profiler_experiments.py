@@ -73,16 +73,12 @@ class VectorSearchProfiler:
             "knn": knn_query,
             "size": size,
             "profile": True,
-            "_source": ["text", "category", "text_length"]
+            "_source": ["text", "category", "text_length"],
+            "query": {"bool": {"filter": []}}
         }
 
         # Add filters if provided
         if filters:
-            search_body["query"] = {
-                "bool": {
-                    "filter": []
-                }
-            }
 
             for field, value in filters.items():
                 if isinstance(value, list) and "range" not in str(value):
@@ -371,7 +367,7 @@ class VectorSearchProfiler:
                 print(f"\nTesting {exp_name}...")
 
                 runs = []
-                for i in range(50):
+                for i in range(5):
                     result = self.run_vector_search(index_name, query_vector, size=10, filters=filters)
                     runs.append(result)
                     time.sleep(0.1)
