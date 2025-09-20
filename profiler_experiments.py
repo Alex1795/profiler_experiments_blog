@@ -86,7 +86,6 @@ class VectorSearchProfiler:
 
             for field, value in filters.items():
                 if isinstance(value, list) and "range" not in str(value):
-                    print(value)
                     search_body["query"]["bool"]["filter"].append({
                         "terms": {field: value}
                     })
@@ -95,7 +94,6 @@ class VectorSearchProfiler:
                         "range": {field: value}
                     })
                 else:
-                    print(str(field), str(value))
                     search_body["query"]["bool"]["filter"].append({
                         "term": {field: value}
                     })
@@ -284,7 +282,7 @@ class VectorSearchProfiler:
 
                 # Run multiple queries and average the results
                 runs = []
-                for i in range(3):
+                for i in range(50):
                     result = self.run_vector_search(index, query_vector, size=10)
                     runs.append(result)
                     time.sleep(0.1)  # Small delay between runs
@@ -324,7 +322,7 @@ class VectorSearchProfiler:
                 print(f"\nTesting {name} ({index})...")
 
                 runs = []
-                for i in range(3):
+                for i in range(50):
                     result = self.run_vector_search(index, query_vector, size=10)
                     runs.append(result)
                     time.sleep(0.1)
@@ -373,7 +371,7 @@ class VectorSearchProfiler:
                 print(f"\nTesting {exp_name}...")
 
                 runs = []
-                for i in range(3):
+                for i in range(50):
                     result = self.run_vector_search(index_name, query_vector, size=10, filters=filters)
                     runs.append(result)
                     time.sleep(0.1)
@@ -438,7 +436,7 @@ class VectorSearchProfiler:
                     runs.append(result)
                 else:
                     # For warm query, run multiple times to show consistent cached performance
-                    for i in range(5):
+                    for i in range(50):
                         result = self.run_vector_search(index_name, query_vector, size=10)
                         runs.append(result)
                         time.sleep(0.1)  # Small delay between runs
