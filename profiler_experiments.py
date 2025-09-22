@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Elasticsearch Vector Search Profile API Experiments
 
@@ -12,7 +11,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from elasticsearch import Elasticsearch
-from typing import Dict, List, Any, Tuple
+from typing import Dict, List, Any
 import warnings
 import os
 
@@ -21,7 +20,7 @@ warnings.filterwarnings('ignore')
 
 
 class VectorSearchProfiler:
-    def __init__(self, es_client: str = "localhost:9200"):
+    def __init__(self, es_client: Elasticsearch):
         """Initialize the Elasticsearch client."""
         self.es = es_client
         self.results = []
@@ -33,28 +32,6 @@ class VectorSearchProfiler:
         vector = vector / np.linalg.norm(vector)
         return vector.tolist()
 
-    def get_sample_categories(self, index_name: str, limit: int = 10) -> List[str]:
-        """Get sample categories from the index for filtering experiments."""
-        try:
-            response = self.es.search(
-                index=index_name,
-                body={
-                    "size": 0,
-                    "aggs": {
-                        "categories": {
-                            "terms": {
-                                "field": "category",
-                                "size": limit
-                            }
-                        }
-                    }
-                }
-            )
-            categories = [bucket['key'] for bucket in response['aggregations']['categories']['buckets']]
-            return categories[:5]  # Return top 5 categories
-        except Exception as e:
-            print(f"Warning: Could not get categories from {index_name}: {e}")
-            return ["sample_category"]
 
     def run_vector_search(self, index_name: str, query_vector: List[float],
                           size: int = 10, filters: Dict = None) -> Dict[str, Any]:
@@ -65,34 +42,32 @@ class VectorSearchProfiler:
             "field": "embedding",
             "query_vector": query_vector,
             "k": size,
-            "num_candidates": size * 10
+            "num_candidates": size * 10,
+            "filter":[]
         }
 
-        # Construct the search body
+
+
+        # Add filters if provided
+        if filters:
+
+            if 'category' in filters.keys():
+                knn_query["filter"].append(
+                    {'term':{"category":filters['category']}}
+                )
+            if 'text_length' in filters.keys():
+                knn_query["filter"].append(
+                    {'range': {"text_length": filters['text_length']}}
+                )
+
+                # Construct the search body
         search_body = {
             "knn": knn_query,
             "size": size,
             "profile": True,
             "_source": ["text", "category", "text_length"],
-            "query": {"bool": {"filter": []}}
+            #     "query": {"bool": {"filter": []}}
         }
-
-        # Add filters if provided
-        if filters:
-
-            for field, value in filters.items():
-                if isinstance(value, list) and "range" not in str(value):
-                    search_body["query"]["bool"]["filter"].append({
-                        "terms": {field: value}
-                    })
-                elif isinstance(value, dict) and field == "text_length":
-                    search_body["query"]["bool"]["filter"].append({
-                        "range": {field: value}
-                    })
-                else:
-                    search_body["query"]["bool"]["filter"].append({
-                        "term": {field: value}
-                    })
 
         # Execute search
         start_time = time.time()
@@ -346,19 +321,17 @@ class VectorSearchProfiler:
         """Experiment 4: Combined filter and vector search."""
         print("\n=== Experiment 3: Combined Filter and Vector Search ===")
 
-        index_name = "wikipedia-float32-hnsw"
+        index_name = "wikipedia-brute-force-1shard"
         query_vector = self.generate_random_vector()
 
-        # Get sample categories for filtering
-        categories = self.get_sample_categories(index_name)
 
         experiments = [
             ("No Filter", {}),
-            ("Category Filter", {"category": categories[0] if categories else "sample"}),
-            ("Text Length Filter", {"text_length": {"gte": 1000, "lte": 5000}}),
+            ("Category Filter", {"category": "short"}),
+            ("Text Length Filter", {"text_length": {"gte": 1000, "lte": 2000}}),
             ("Combined Filters", {
-                "category": categories[0] if categories else "sample",
-                "text_length": {"gte": 500}
+                "category": "short",
+                "text_length": {"lte": 10}
             })
         ]
 
