@@ -580,7 +580,10 @@ class VectorSearchProfiler:
         # Run experiments
         self.experiment_1_brute_force_vs_hnsw()
         self.experiment_2_sharding_impact()
-        self.experiment_3_combined_filter_vector()
+        if es.info()["name"] == "serverless":
+            print("Skipping experiment 3 because we can't control the number of shards in a serverless deployment")
+        else:
+            self.experiment_3_combined_filter_vector()
         self.experiment_4_cache_performance()
 
         # Generate results
@@ -671,6 +674,7 @@ if __name__ == "__main__":
     # Get environment variables
     host = os.getenv('ES_HOST')
     api_key = os.getenv('API_KEY')
+
 
     if not host or not api_key:
         raise ValueError("Please set ES_HOST and API_KEY environment variables")

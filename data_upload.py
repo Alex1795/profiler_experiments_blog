@@ -239,12 +239,12 @@ def upload_to_elasticsearch(es, indices=None, batch_size=100, max_docs=100000):
                 # Check for errors
                 if resp['errors']:
                     error_count = sum(1 for item in resp['items'] if 'error' in item.get('index', {}))
-                    print(f"⚠️  {error_count} documents failed to index")
+                    print(f"{error_count} documents failed to index")
                 else:
-                    print(f"✅ Successfully indexed batch")
+                    print(f"Successfully indexed batch")
 
             except Exception as e:
-                print(f"❌ Batch upload failed: {e}")
+                print(f"Batch upload failed: {e}")
                 print(resp)
 
             # Clear batch for next iteration
@@ -263,14 +263,14 @@ def upload_to_elasticsearch(es, indices=None, batch_size=100, max_docs=100000):
             resp = es.bulk(operations=batch_operations)
             if resp['errors']:
                 error_count = sum(1 for item in resp['items'] if 'error' in item.get('index', {}))
-                print(f"⚠️  {error_count} documents in final batch failed to index")
+                print(f"{error_count} documents in final batch failed to index")
             else:
-                print(f"✅ Successfully indexed final batch")
+                print(f"Successfully indexed final batch")
         except Exception as e:
-            print(f"❌ Final batch upload failed: {e}")
+            print(f"Final batch upload failed: {e}")
 
-    print(f"📊 Total documents processed: {doc_count}")
-    print(f"📊 Total documents per index: {doc_count}")
+    print(f"Total documents processed: {doc_count}")
+    print(f"Total documents per index: {doc_count}")
 
     # Print index stats
     for index in indices:
@@ -278,9 +278,9 @@ def upload_to_elasticsearch(es, indices=None, batch_size=100, max_docs=100000):
             stats = es.indices.stats(index=index)
             doc_count_actual = stats['indices'][index]['total']['docs']['count']
             size_mb = stats['indices'][index]['total']['store']['size_in_bytes'] / (1024 * 1024)
-            print(f"📈 {index}: {doc_count_actual} docs, {size_mb:.1f} MB")
+            print(f"{index}: {doc_count_actual} docs, {size_mb:.1f} MB")
         except Exception as e:
-            print(f"❌ Could not get stats for {index}: {e}")
+            print(f"Could not get stats for {index}: {e}")
 
 
 def main():
@@ -288,42 +288,52 @@ def main():
     host = os.getenv('ES_HOST')
     api_key = os.getenv('API_KEY')
 
-
     if not host or not api_key:
         raise ValueError("Please set ES_HOST and API_KEY environment variables")
 
     # Create Elasticsearch client
     es = Elasticsearch(hosts=host, api_key=api_key, request_timeout=120)
 
-    print("🔍 Checking cluster health...")
+    #print("Checking cluster health...")
     try:
-        health = es.cluster.health()
-        print(f"✅ Cluster status: {health['status']}")
+        cluster_info = es.info()
+        print("Connected to deployment: ",cluster_info)
+
     except Exception as e:
-        print(f"❌ Could not connect to Elasticsearch: {e}")
+        print(f"Could not connect to Elasticsearch: {e}")
         return
+    if cluster_info["name"] == "serverless":
+        cluster_type = "serverless"
+        for key in mappings.keys():
+            del mappings[key]['settings']
+    else:
+        cluster_type = "hosted"
+
+
+
+
 
     # Create indices
-    print("\n🏗️  Creating indices...")
+    print("\nCreating indices...")
     for index_name, mapping in mappings.items():
         try:
             if es.indices.exists(index=index_name):
-                print(f"⚠️  Index already exists: {index_name}")
-                # Optionally delete and recreate
-                #es.indices.delete(index=index_name)
-                #es.indices.create(index=index_name, body=mapping)
-                #print(f"🔄 Recreated {index_name}")
+                print(f" Index already exists: {index_name}")
+                # delete and recreate
+                es.indices.delete(index=index_name)
+                es.indices.create(index=index_name, body=mapping)
+                print(f"Recreated {index_name}")
             else:
                 es.indices.create(index=index_name, body=mapping)
-                print(f"✅ Created {index_name}")
+                print(f"Created {index_name}")
         except Exception as e:
-            print(f"❌ Failed to create {index_name}: {e}")
+            print(f"Failed to create {index_name}: {e}")
 
     # Upload documents
-    print("\n📤 Starting document upload...")
+    print("\nStarting document upload...")
     upload_to_elasticsearch(es, list(mappings.keys()), batch_size=300, max_docs=50000)  # Reduced for faster testing
 
-    print("\n🎉 Upload process completed!")
+    print("\nUpload process completed!")
 
 
 if __name__ == "__main__":

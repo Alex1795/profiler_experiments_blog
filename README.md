@@ -41,7 +41,7 @@ pip install -r requirements.txt
 ```
 python data_upload.py
 ```
-This might take several minutes, it is streaming the data from huggingface.
+This might take several minutes, it is streaming the data from HuggingFace.
 
 4. Once the data is indexed in Elastic you can run the experiments using:
 ```
