@@ -22,7 +22,21 @@ The core profiling functionality is implemented in extract_profile_data() which 
 
 
 
-Getting started
+## Getting started
+
+### Prerequisites
+
+- Python 3.x
+- A Elasticsearch deployment
+- Libraries
+  - Elasticsearch
+  - Pandas
+  - Numpy
+  - Matplotlib
+  - Datasets (HuggingFace library) 
+
+
+
 To reproduce this experiment you can follow these steps:
 
 
